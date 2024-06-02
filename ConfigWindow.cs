@@ -657,6 +657,7 @@ public class ConfigWindow : Window {
                     ImGui.SliderFloat("Plus/Minus Button Delta", ref config.PlusMinusDelta, 0.0001f, 0.01f, "%.4f", ImGuiSliderFlags.AlwaysClamp);
                 }
 
+                ImGui.Checkbox("SHIFT + Right click offset inputs to reset values", ref config.RightClickResetValue);
                 ImGui.Checkbox("Show character Rename and Copy UI", ref config.ShowCopyUi);
 
                 ImGuiExt.Separator();
@@ -1130,7 +1131,7 @@ public class ConfigWindow : Window {
                         ImGui.TableNextColumn();
 
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGuiExt.FloatEditor("##offset", ref heelConfig.Offset, 0.001f, float.MinValue, float.MaxValue, "%.5f")) {
+                        if (ImGuiExt.FloatEditor("##offset", ref heelConfig.Offset, 0.001f, float.MinValue, float.MaxValue, "%.5f", resetValue: 0f)) {
                             if (heelConfig.Enabled) Plugin.RequestUpdateAll();
                         }
 
@@ -1387,7 +1388,18 @@ public class ConfigWindow : Window {
                             }
 
                             using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(1))) {
-                                ImGui.Dummy(new Vector2(checkboxSize));
+                                using (ImRaii.Disabled(e.Locked || !ImGui.GetIO().KeyShift))
+                                using (ImRaii.PushFont(UiBuilder.IconFont)) {
+                                    if (ImGui.Button(FontAwesomeIcon.Eraser.ToIconString(), new Vector2(checkboxSize))) {
+                                        e.Offset = new Vector3(0, 0, 0);
+                                        e.Rotation = 0;
+                                    }
+                                }
+                                
+                                if (e.Locked == false && !ImGui.GetIO().KeyShift && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) {
+                                    ImGui.SetTooltip("Hold SHIFT to reset all values to zero");
+                                }
+                                
                                 ImGui.SameLine();
                                 using (ImRaii.Disabled(e.Locked || !ImGui.GetIO().KeyShift))
                                 using (ImRaii.PushFont(UiBuilder.IconFont)) {
@@ -1425,18 +1437,18 @@ public class ConfigWindow : Window {
                         ImGuiExt.IconTextFrame(e.Emote.Icon, previewEmoteName);
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        ImGuiExt.FloatEditor("##height", ref e.Offset.Y, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig);
+                        ImGuiExt.FloatEditor("##height", ref e.Offset.Y, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig, resetValue: 0f);
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        ImGuiExt.FloatEditor("##forward", ref e.Offset.Z, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig);
+                        ImGuiExt.FloatEditor("##forward", ref e.Offset.Z, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig, resetValue: 0f);
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        ImGuiExt.FloatEditor("##side", ref e.Offset.X, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig);
+                        ImGuiExt.FloatEditor("##side", ref e.Offset.X, 0.0001f, allowPlusMinus: characterConfig is not IpcCharacterConfig, resetValue: 0f);
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                         var rot = e.Rotation * 180f / MathF.PI;
 
-                        if (ImGuiExt.FloatEditor("##rotation", ref rot, format: "%.0f", allowPlusMinus: characterConfig is not IpcCharacterConfig, customPlusMinus: 1)) {
+                        if (ImGuiExt.FloatEditor("##rotation", ref rot, format: "%.0f", allowPlusMinus: characterConfig is not IpcCharacterConfig, customPlusMinus: 1, resetValue: 0f)) {
                             if (rot < 0) rot += 360;
                             if (rot >= 360) rot -= 360;
                             e.Rotation = rot * MathF.PI / 180f;
@@ -1634,7 +1646,7 @@ public class ConfigWindow : Window {
             }
 
             ImGuiExt.Separator();
-            ImGuiExt.FloatEditor("Default Offset", ref characterConfig.DefaultOffset, 0.001f, allowPlusMinus: characterConfig is not IpcCharacterConfig);
+            ImGuiExt.FloatEditor("Default Offset", ref characterConfig.DefaultOffset, 0.001f, allowPlusMinus: characterConfig is not IpcCharacterConfig, resetValue: 0f);
             ImGui.SameLine();
             ImGuiComponents.HelpMarker("The default offset will be used for all footwear that has not been configured.");
             ImGui.SameLine();
